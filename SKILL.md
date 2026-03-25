@@ -10,8 +10,9 @@ allowed-tools:
   - Write
   - Bash
   - Glob
-  - AskUserQuestion
-model: claude-sonnet-4-5-20250514
+  - Grep
+  - WebFetch
+  - Executive
 ---
 
 # YouTube 视频智能剪辑工具
@@ -72,7 +73,7 @@ model: claude-sonnet-4-5-20250514
 
 2. 调用 download_video.py 脚本
    ```bash
-   cd ~/.claude/skills/youtube-clipper
+   cd ~/.openclaw/skills/youtube-clipper
    python3 scripts/download_video.py <youtube_url>
    ```
 
@@ -95,7 +96,7 @@ model: claude-sonnet-4-5-20250514
 
 ### 阶段 3: 分析章节（核心差异化功能）
 
-**目标**: 使用 Claude AI 分析字幕内容，生成精细章节（2-5 分钟级别）
+**目标**: 使用 AI 分析字幕内容，生成精细章节（2-5 分钟级别）
 
 1. 调用 analyze_subtitles.py 解析 VTT 字幕
    ```bash
@@ -112,6 +113,8 @@ model: claude-sonnet-4-5-20250514
    - 理解内容语义和主题转换点
    - 识别自然的话题切换位置
    - 生成 2-5 分钟粒度的章节（避免半小时粗粒度切分）
+
+   AI 分析由 OpenClaw 主 Agent 驱动，使用当前配置的模型（如 Ollama、本地 LLM 等）。
 
 4. 为每个章节生成：
    - **标题**: 精炼的主题概括（10-20 字）
@@ -148,7 +151,7 @@ model: claude-sonnet-4-5-20250514
 
 **目标**: 让用户选择要剪辑的章节和处理选项
 
-1. 使用 AskUserQuestion 工具让用户选择章节
+1. 直接询问用户选择章节
    - 提供章节编号供用户选择
    - 支持多选（可以选择多个章节）
 
@@ -182,10 +185,10 @@ python3 scripts/clip_video.py <video_path> <start_time> <end_time> <output_path>
 - 输出: `<章节标题>_original.srt`
 
 #### 5.3 翻译字幕（如果用户选择）
-```bash
-python3 scripts/translate_subtitles.py <subtitle_path>
-```
-- **批量翻译优化**: 每批 20 条字幕一起翻译（节省 95% API 调用）
+
+**注意**: 翻译由 OpenClaw 主 Agent 驱动，使用当前配置的模型进行批量翻译（每批 20 条）。
+
+- **批量翻译优化**: 每批 20 条字幕一起翻译
 - 翻译策略：
   - 保持技术术语的准确性
   - 口语化表达（适合短视频）
@@ -211,9 +214,9 @@ python3 scripts/burn_subtitles.py <video_path> <subtitle_path> <output_path>
 - 输出: `<章节标题>_with_subtitles.mp4`
 
 #### 5.6 生成总结文案（如果用户选择）
-```bash
-python3 scripts/generate_summary.py <chapter_info>
-```
+
+**注意**: 文案生成由 OpenClaw 主 Agent 驱动，使用当前配置的模型生成适合社交媒体的文案。
+
 - 基于章节标题、摘要和关键词
 - 生成适合社交媒体的文案
 - 包含: 标题、核心观点、适合平台（小红书、抖音等）

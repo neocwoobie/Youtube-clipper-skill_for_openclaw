@@ -1,6 +1,6 @@
 # YouTube Clipper Skill
 
-> AI-powered YouTube video clipper for Claude Code. Download videos, generate semantic chapters, clip segments, translate subtitles to bilingual format, and burn subtitles into videos.
+> AI-powered YouTube video clipper for OpenClaw. Download videos, generate semantic chapters, clip segments, translate subtitles to bilingual format, and burn subtitles into videos.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -23,13 +23,13 @@ English | [简体中文](README.zh-CN.md)
 
 ## Installation
 
-### Option 1: npx skills (Recommended)
+### Option 1: ClawHub (Recommended for OpenClaw)
 
 ```bash
 npx skills add https://github.com/op7418/Youtube-clipper-skill
 ```
 
-This command will automatically install the skill to `~/.claude/skills/youtube-clipper/`.
+This command will automatically install the skill to `~/.openclaw/skills/youtube-clipper/`.
 
 ### Option 2: Manual Installation
 
@@ -40,7 +40,7 @@ bash install_as_skill.sh
 ```
 
 The install script will:
-- Copy files to `~/.claude/skills/youtube-clipper/`
+- Copy files to `~/.openclaw/skills/youtube-clipper/`
 - Install Python dependencies (yt-dlp, pysrt, python-dotenv)
 - Check system dependencies (Python, yt-dlp, FFmpeg)
 - Create `.env` configuration file
@@ -86,9 +86,9 @@ ffmpeg -filters 2>&1 | grep subtitles
 
 ## Usage
 
-### In Claude Code
+### In OpenClaw
 
-Simply tell Claude to clip a YouTube video:
+Simply tell OpenClaw to clip a YouTube video:
 
 ```
 Clip this YouTube video: https://youtube.com/watch?v=VIDEO_ID
@@ -104,7 +104,7 @@ or
 
 1. **Environment Check** - Verifies yt-dlp, FFmpeg, and Python dependencies
 2. **Video Download** - Downloads video (up to 1080p) and English subtitles
-3. **AI Chapter Analysis** - Claude analyzes subtitles to generate semantic chapters (2-5 min each)
+3. **AI Chapter Analysis** - AI analyzes subtitles to generate semantic chapters (2-5 min each)
 4. **User Selection** - Choose which chapters to clip and processing options
 5. **Processing** - Clips video, translates subtitles, burns subtitles (if requested)
 6. **Output** - Organized files in `./youtube-clips/<timestamp>/`
@@ -126,7 +126,7 @@ For each clipped chapter:
 
 ## Configuration
 
-The skill uses environment variables for customization. Edit `~/.claude/skills/youtube-clipper/.env`:
+The skill uses environment variables for customization. Edit `~/.openclaw/skills/youtube-clipper/.env`:
 
 ### Key Settings
 
@@ -193,7 +193,7 @@ Clip this lecture video and create bilingual subtitles: https://youtube.com/watc
 
 ### AI Semantic Chapter Analysis
 
-Unlike mechanical time-based splitting, this skill uses Claude's AI to:
+Unlike mechanical time-based splitting, this skill uses AI to:
 - Understand content semantics
 - Identify natural topic transitions
 - Generate meaningful chapter titles and summaries
@@ -264,7 +264,7 @@ YT_DLP_PROXY=socks5://proxy-server:port
 
 **Solution**: The skill automatically retries up to 3 times. If persistent, check:
 - Network connectivity
-- Claude API status
+- AI model status
 - Reduce `TRANSLATION_BATCH_SIZE` in `.env`
 
 ### Special characters in filenames
@@ -304,7 +304,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgements
 
-- **[Claude Code](https://claude.ai/claude-code)** - The AI-powered CLI tool
+- **[OpenClaw](https://github.com/openclaw/openclaw)** - The AI-powered CLI tool
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** - YouTube download engine
 - **[FFmpeg](https://ffmpeg.org/)** - Video processing powerhouse
 

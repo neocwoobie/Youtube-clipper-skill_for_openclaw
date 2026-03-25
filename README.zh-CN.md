@@ -1,6 +1,6 @@
 # YouTube Clipper Skill
 
-> Claude Code 的 AI 智能视频剪辑工具。下载视频、生成语义章节、剪辑片段、翻译双语字幕并烧录字幕到视频。
+> OpenClaw 的 AI 智能视频剪辑工具。下载视频、生成语义章节、剪辑片段、翻译双语字幕并烧录字幕到视频。
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -23,13 +23,13 @@
 
 ## 安装
 
-### 方式 1: npx skills（推荐）
+### 方式 1: ClawHub（OpenClaw 推荐）
 
 ```bash
 npx skills add https://github.com/op7418/Youtube-clipper-skill
 ```
 
-该命令会自动将 skill 安装到 `~/.claude/skills/youtube-clipper/` 目录。
+该命令会自动将 skill 安装到 `~/.openclaw/skills/youtube-clipper/` 目录。
 
 ### 方式 2: 手动安装
 
@@ -40,7 +40,7 @@ bash install_as_skill.sh
 ```
 
 安装脚本会：
-- 复制文件到 `~/.claude/skills/youtube-clipper/`
+- 复制文件到 `~/.openclaw/skills/youtube-clipper/`
 - 安装 Python 依赖（yt-dlp、pysrt、python-dotenv）
 - 检查系统依赖（Python、yt-dlp、FFmpeg）
 - 创建 `.env` 配置文件
@@ -86,9 +86,9 @@ ffmpeg -filters 2>&1 | grep subtitles
 
 ## 使用方法
 
-### 在 Claude Code 中使用
+### 在 OpenClaw 中使用
 
-只需告诉 Claude 剪辑一个 YouTube 视频：
+只需告诉 OpenClaw 剪辑一个 YouTube 视频：
 
 ```
 Clip this YouTube video: https://youtube.com/watch?v=VIDEO_ID
@@ -104,7 +104,7 @@ Clip this YouTube video: https://youtube.com/watch?v=VIDEO_ID
 
 1. **环境检测** - 验证 yt-dlp、FFmpeg 和 Python 依赖
 2. **视频下载** - 下载视频（最高 1080p）和英文字幕
-3. **AI 章节分析** - Claude 分析字幕生成语义章节（每个 2-5 分钟）
+3. **AI 章节分析** - AI 分析字幕生成语义章节（每个 2-5 分钟）
 4. **用户选择** - 选择要剪辑的章节和处理选项
 5. **处理** - 剪辑视频、翻译字幕、烧录字幕（如果需要）
 6. **输出** - 组织文件到 `./youtube-clips/<时间戳>/`
@@ -126,7 +126,7 @@ Clip this YouTube video: https://youtube.com/watch?v=VIDEO_ID
 
 ## 配置
 
-本 skill 使用环境变量进行自定义配置。编辑 `~/.claude/skills/youtube-clipper/.env`：
+本 skill 使用环境变量进行自定义配置。编辑 `~/.openclaw/skills/youtube-clipper/.env`：
 
 ### 主要设置
 
@@ -193,7 +193,7 @@ TARGET_CHAPTER_DURATION=180
 
 ### AI 语义章节分析
 
-与机械按时间切分不同，本 skill 使用 Claude AI 来：
+与机械按时间切分不同，本 skill 使用 AI 来：
 - 理解内容语义
 - 识别自然的主题转换点
 - 生成有意义的章节标题和摘要
@@ -264,7 +264,7 @@ YT_DLP_PROXY=socks5://proxy-server:port
 
 **解决方案**：skill 会自动重试最多 3 次。如果持续失败，请检查：
 - 网络连接
-- Claude API 状态
+- AI 模型状态
 - 减少 `.env` 中的 `TRANSLATION_BATCH_SIZE`
 
 ### 文件名包含特殊字符
@@ -304,7 +304,7 @@ YT_DLP_PROXY=socks5://proxy-server:port
 
 ## 致谢
 
-- **[Claude Code](https://claude.ai/claude-code)** - AI 驱动的 CLI 工具
+- **[OpenClaw](https://github.com/openclaw/openclaw)** - AI 驱动的 CLI 工具
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** - YouTube 下载引擎
 - **[FFmpeg](https://ffmpeg.org/)** - 视频处理利器
 

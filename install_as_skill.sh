@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ##############################################################################
-# YouTube Clipper - Claude Code Skill 安装脚本
+# YouTube Clipper - OpenClaw Skill 安装脚本
 #
 # 功能：
 # 1. 自动创建 Skill 目录
@@ -54,10 +54,10 @@ command_exists() {
 
 # 主函数
 main() {
-    print_header "YouTube Clipper - Claude Code Skill 安装"
+    print_header "YouTube Clipper - OpenClaw Skill 安装"
 
     # 1. 确定 Skill 目录
-    SKILL_DIR="$HOME/.claude/skills/youtube-clipper"
+    SKILL_DIR="$HOME/.openclaw/skills/youtube-clipper"
     print_info "目标目录: $SKILL_DIR"
 
     # 2. 检查是否已存在
@@ -210,7 +210,7 @@ main() {
     # 11. 完成
     print_header "安装完成！"
 
-    print_success "YouTube Clipper 已成功安装为 Claude Code Skill"
+    print_success "YouTube Clipper 已成功安装为 OpenClaw Skill"
     echo ""
     print_info "安装位置: $SKILL_DIR"
     echo ""
@@ -222,7 +222,7 @@ main() {
     fi
 
     print_info "使用方法："
-    print_info "  在 Claude Code 中输入："
+    print_info "  在 OpenClaw 中输入："
     print_info "  \"剪辑这个 YouTube 视频：https://youtube.com/watch?v=VIDEO_ID\""
     echo ""
     print_info "详细文档："
