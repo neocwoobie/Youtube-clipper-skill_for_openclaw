@@ -1,5 +1,5 @@
 # YouTube Clipper Skill
-
+變更點:修改原repo以適用openclaw，不依賴於claude api，使用之model依據main agent model而定
 > AI-powered YouTube video clipper for OpenClaw. Download videos, generate semantic chapters, clip segments, translate subtitles to bilingual format, and burn subtitles into videos.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
