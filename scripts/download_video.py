@@ -6,6 +6,7 @@
 
 import sys
 import json
+import subprocess
 from pathlib import Path
 
 try:
@@ -14,6 +15,11 @@ except ImportError:
     print("❌ Error: yt-dlp not installed")
     print("Please install: pip install yt-dlp")
     sys.exit(1)
+
+# 取得 skill 目錄路徑（用於呼叫 venv 中的 transcribe 腳本）
+SKILL_DIR = Path(__file__).parent.parent.resolve()
+VENV_PYTHON = SKILL_DIR / "venv" / "Scripts" / "python.exe"
+TRANSCRIBE_SCRIPT = SKILL_DIR / "scripts" / "transcribe_audio.py"
 
 from utils import (
     validate_url,
@@ -136,8 +142,8 @@ def download_video(url: str, output_dir: str = None) -> dict:
             if subtitle_path and subtitle_path.exists():
                 print(f"✅ 字幕下载完成: {subtitle_path.name}")
             else:
-                print(f"⚠️  未找到英文字幕")
-                print(f"   提示：某些视频可能没有字幕或需要自动生成")
+                print(f"⚠️  未找到英文字幕，嘗試使用 faster-whisper 自動生成...")
+                subtitle_path = _fallback_transcribe(video_path)
 
             return {
                 'video_path': str(video_path),
@@ -179,6 +185,80 @@ def _progress_hook(d):
 
     elif d['status'] == 'finished':
         print()  # 换行
+
+
+def _fallback_transcribe(video_path: Path) -> str:
+    """
+    當字幕下載失敗時，使用 faster-whisper 自動生成字幕
+
+    Args:
+        video_path: 影片檔案路徑
+
+    Returns:
+        str: 生成的字幕檔案路徑，失敗時回傳 None
+    """
+    print(f"\n🔧 啟動 faster-whisper 自動字幕生成...")
+
+    # 檢查 venv 和腳本是否存在
+    if not VENV_PYTHON.exists():
+        print(f"❌ Venv Python 未找到: {VENV_PYTHON}")
+        print(f"   請先執行: python -m venv venv && venv\\Scripts\\pip install faster-whisper")
+        return None
+
+    if not TRANSCRIBE_SCRIPT.exists():
+        print(f"❌ Transcribe 腳本未找到: {TRANSCRIBE_SCRIPT}")
+        return None
+
+    try:
+        # 使用 venv 中的 Python 執行 transcribe_audio.py
+        result = subprocess.run(
+            [str(VENV_PYTHON), str(TRANSCRIBE_SCRIPT), str(video_path)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=3600  # 1 小時超時
+        )
+
+        if result.returncode == 0:
+            # 解析輸出取得字幕路徑
+            # 找最後的 JSON 區塊
+            output = result.stdout
+            json_start = output.rfind("{")
+            json_end = output.rfind("}") + 1
+            if json_start >= 0 and json_end > json_start:
+                try:
+                    data = json.loads(output[json_start:json_end])
+                    subtitle_path = data.get("subtitle_path")
+                    if subtitle_path and Path(subtitle_path).exists():
+                        print(f"✅ Whisper 自動字幕生成成功: {Path(subtitle_path).name}")
+                        return subtitle_path
+                except json.JSONDecodeError:
+                    pass
+
+            # 如果 JSON 解析失敗，嘗試從輸出找到 .vtt 路徑
+            for line in output.split("\n"):
+                if ".vtt" in line:
+                    # 找到像是路徑的行
+                    parts = line.strip().split()
+                    for part in parts:
+                        if part.endswith(".vtt") and Path(part).exists():
+                            print(f"✅ Whisper 自動字幕生成成功: {Path(part).name}")
+                            return part
+
+            print(f"⚠️  無法從輸出找到字幕檔案路徑")
+            return None
+        else:
+            print(f"❌ Whisper 執行失敗:")
+            print(f"   stderr: {result.stderr[:500]}")
+            return None
+
+    except subprocess.TimeoutExpired:
+        print(f"❌ Whisper 執行超時（1 小時），請嘗試較短的影片或使用更小的模型")
+        return None
+    except Exception as e:
+        print(f"❌ Whisper 執行錯誤: {str(e)}")
+        return None
 
 
 def main():

@@ -120,6 +120,54 @@ def install_ffmpeg_full_guide():
     print("="*60)
 
 
+def _get_ffmpeg_subtitle_path(subtitle_path: str) -> str:
+    """
+    取得 FFmpeg subtitles 濾鏡可接受的字幕路徑格式
+    
+    Windows FFmpeg 7.x subtitles 濾鏡對路徑處理有 bug：
+    - 反斜槓 \\ 會被誤解析為 \\U escape 序列
+    - 解決方式：使用正斜槓 / 並確保路徑格式正確
+    
+    Args:
+        subtitle_path: 原始字幕路徑
+        
+    Returns:
+        str: FFmpeg 可接受的路徑格式
+    """
+    # 轉換為正斜槓格式，確保 FFmpeg 能正確解析
+    # Windows 上路徑如 C:\Users\Neo Chen\... 
+    # 轉為 C:/Users/Neo Chen/...
+    # 並用雙引號包裝（FFmpeg 解析器需要）
+    # 注意：冒號前需加反斜槓轉義（\\:），這是 FFmpeg 路徑語法
+    return subtitle_path.replace('\\', '/').replace(':', '\\:')
+
+
+def _convert_srt_to_ass(srt_path: str) -> Optional[str]:
+    """
+    將 SRT 字幕轉換為 ASS 格式，提升燒錄相容性
+    
+    ASS 格式對 FFmpeg libass 的支援更穩定，特別是含多行字幕時。
+    
+    Args:
+        srt_path: SRT 字幕檔路徑
+        
+    Returns:
+        str: ASS 檔路徑，失敗時回傳 None
+    """
+    try:
+        import pysrt
+        ass_path = srt_path.replace('.srt', '.ass')
+        subs = pysrt.open(srt_path)
+        subs.save(ass_path, encoding='utf-8')
+        return ass_path
+    except ImportError:
+        # pysrt 未安裝，跳過轉換，使用原路徑
+        return None
+    except Exception:
+        # 轉換失敗，使用原路徑
+        return None
+
+
 def burn_subtitles(
     video_path: str,
     subtitle_path: str,
@@ -129,34 +177,39 @@ def burn_subtitles(
     margin_v: int = 30
 ) -> str:
     """
-    烧录字幕到视频（使用临时目录解决路径空格问题）
+    燒錄字幕到視頻（使用臨時目錄解決路徑空格問題）
+
+    Windows FFmpeg 7.x subtitles 濾鏡特殊處理：
+    - 使用正斜槓路徑格式（forward slash）並對驅動器冒號轉義
+    - SRT 轉 ASS 提升中文多行字幕相容性
+    - 臨時目錄確保路徑無特殊字元
 
     Args:
-        video_path: 输入视频路径
-        subtitle_path: 字幕文件路径（SRT 格式）
-        output_path: 输出视频路径
-        ffmpeg_path: FFmpeg 可执行文件路径（可选）
-        font_size: 字体大小，默认 24
-        margin_v: 底部边距，默认 30
+        video_path: 輸入視頻路徑
+        subtitle_path: 字幕文件路徑（SRT 或 ASS 格式）
+        output_path: 輸出視頻路徑
+        ffmpeg_path: FFmpeg 可執行文件路徑（可選）
+        font_size: 字體大小，默認 24
+        margin_v: 底部邊距，默認 30
 
     Returns:
-        str: 输出视频路径
+        str: 輸出視頻路徑
 
     Raises:
-        FileNotFoundError: 输入文件不存在
-        RuntimeError: FFmpeg 执行失败
+        FileNotFoundError: 輸入文件不存在
+        RuntimeError: FFmpeg 執行失敗
     """
     video_path = Path(video_path)
     subtitle_path = Path(subtitle_path)
     output_path = Path(output_path)
 
-    # 验证输入文件
+    # 驗證輸入文件
     if not video_path.exists():
         raise FileNotFoundError(f"Video file not found: {video_path}")
     if not subtitle_path.exists():
         raise FileNotFoundError(f"Subtitle file not found: {subtitle_path}")
 
-    # 检测 FFmpeg
+    # 檢測 FFmpeg
     if ffmpeg_path is None:
         ffmpeg_info = detect_ffmpeg_variant()
 
@@ -170,76 +223,132 @@ def burn_subtitles(
 
         ffmpeg_path = ffmpeg_info['path']
 
-    print(f"\n🎬 烧录字幕到视频...")
-    print(f"   视频: {video_path.name}")
+    print(f"\n🎬 燒錄字幕到視頻...")
+    print(f"   視頻: {video_path.name}")
     print(f"   字幕: {subtitle_path.name}")
-    print(f"   输出: {output_path.name}")
+    print(f"   輸出: {output_path.name}")
     print(f"   FFmpeg: {ffmpeg_path}")
 
-    # 创建临时目录（解决路径空格问题）
+    # 建立臨時目錄（解決路徑空格問題）
     temp_dir = tempfile.mkdtemp(prefix='youtube_clipper_')
-    print(f"   使用临时目录: {temp_dir}")
+    print(f"   使用臨時目錄: {temp_dir}")
 
     try:
-        # 复制文件到临时目录（路径无空格）
+        # 複製文件到臨時目錄（路徑無空格）
         temp_video = os.path.join(temp_dir, 'video.mp4')
         temp_subtitle = os.path.join(temp_dir, 'subtitle.srt')
         temp_output = os.path.join(temp_dir, 'output.mp4')
 
-        print(f"   复制文件到临时目录...")
+        print(f"   複製文件到臨時目錄...")
         shutil.copy(video_path, temp_video)
-        shutil.copy(subtitle_path, temp_subtitle)
 
-        # 构建 FFmpeg 命令
-        # 使用 subtitles 滤镜烧录字幕
-        subtitle_filter = f"subtitles={temp_subtitle}:force_style='FontSize={font_size},MarginV={margin_v}'"
+        # 嘗試轉換 SRT 為 ASS（提升中文多行字幕相容性）
+        ass_path = _convert_srt_to_ass(str(subtitle_path))
+        if ass_path and Path(ass_path).exists():
+            # 使用 ASS 字幕
+            shutil.copy(ass_path, os.path.join(temp_dir, 'subtitle.ass'))
+            subtitle_for_ffmpeg = os.path.join(temp_dir, 'subtitle.ass')
+            print(f"   使用 ASS 字幕格式燒錄")
+        else:
+            shutil.copy(subtitle_path, temp_subtitle)
+            subtitle_for_ffmpeg = temp_subtitle
+
+        # Windows FFmpeg 7.x 特殊處理
+        # FFmpeg subtitles 濾鏡不支援反斜槓路徑，需轉為正斜槓格式
+        is_windows = platform.system() == 'Windows'
+        
+        if is_windows:
+            # Windows: 使用 C\:/path/ 格式（正斜槓 + 驅動器冒號轉義）
+            subtitle_for_ffmpeg_filter = _get_ffmpeg_subtitle_path(subtitle_for_ffmpeg)
+            video_for_ffmpeg = _get_ffmpeg_subtitle_path(temp_video)
+            output_for_ffmpeg = _get_ffmpeg_subtitle_path(temp_output)
+        else:
+            # macOS/Linux: 直接使用路徑
+            subtitle_for_ffmpeg_filter = subtitle_for_ffmpeg
+            video_for_ffmpeg = temp_video
+            output_for_ffmpeg = temp_output
+
+        # 建構 FFmpeg 命令
+        subtitle_filter = f"subtitles='{subtitle_for_ffmpeg_filter}':force_style='FontSize={font_size},MarginV={margin_v}'"
 
         cmd = [
             ffmpeg_path,
-            '-i', temp_video,
+            '-i', video_for_ffmpeg,
             '-vf', subtitle_filter,
-            '-c:a', 'copy',  # 音频直接复制，不重新编码
-            '-y',  # 覆盖输出文件
-            temp_output
+            '-c:a', 'copy',  # 音頻直接複製，不重新編碼
+            '-y',  # 覆蓋輸出文件
+            output_for_ffmpeg
         ]
 
-        print(f"   执行 FFmpeg...")
+        print(f"   執行 FFmpeg...")
         print(f"   命令: {' '.join(cmd)}")
 
-        # 执行 FFmpeg
+        # 執行 FFmpeg
         result = subprocess.run(
             cmd,
             capture_output=True,
-            text=True
+            text=True,
+            encoding='utf-8',
+            errors='replace'
         )
 
         if result.returncode != 0:
-            print(f"\n❌ FFmpeg 执行失败:")
-            print(result.stderr)
-            raise RuntimeError(f"FFmpeg failed with return code {result.returncode}")
+            print(f"\n❌ FFmpeg 執行失敗:")
+            print(f"   stderr: {result.stderr[:500]}")
 
-        # 验证输出文件
+            # 如果 ASS 失敗，嘗試純 SRT（不做 ASS 轉換）
+            if ass_path and Path(ass_path).exists():
+                print(f"\n🔄 ASS 字幕失敗，嘗試使用原 SRT 字幕...")
+                subtitle_srt_for_filter = _get_ffmpeg_subtitle_path(temp_subtitle)
+                subtitle_filter_srt = f"subtitles='{subtitle_srt_for_filter}':force_style='FontSize={font_size},MarginV={margin_v}'"
+                
+                cmd_srt = [
+                    ffmpeg_path,
+                    '-i', video_for_ffmpeg,
+                    '-vf', subtitle_filter_srt,
+                    '-c:a', 'copy',
+                    '-y',
+                    output_for_ffmpeg
+                ]
+                
+                result_srt = subprocess.run(
+                    cmd_srt,
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace'
+                )
+                
+                if result_srt.returncode == 0:
+                    print(f"✅ SRT 字幕燒錄成功")
+                else:
+                    print(f"❌ SRT 字幕也失敗: {result_srt.stderr[:300]}")
+                    raise RuntimeError(f"FFmpeg failed with return code {result_srt.returncode}")
+            else:
+                raise RuntimeError(f"FFmpeg failed with return code {result.returncode}")
+
+        # 驗證輸出文件
         if not Path(temp_output).exists():
             raise RuntimeError("Output file not created")
 
-        # 移动输出文件到目标位置
-        print(f"   移动输出文件...")
+        # 移動輸出文件到目標位置
+        print(f"   移動輸出文件...")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(temp_output, output_path)
 
-        # 获取文件大小
+        # 獲取文件大小
         output_size = output_path.stat().st_size
-        print(f"✅ 字幕烧录完成")
-        print(f"   输出文件: {output_path}")
+        print(f"✅ 字幕燒錄完成")
+        print(f"   輸出文件: {output_path}")
         print(f"   文件大小: {format_file_size(output_size)}")
 
         return str(output_path)
 
     finally:
-        # 清理临时目录
+        # 清理臨時目錄
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
-            print(f"   清理临时目录")
+            print(f"   清理臨時目錄")
         except Exception:
             pass
 

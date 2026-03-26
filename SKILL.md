@@ -50,6 +50,10 @@ allowed-tools:
    python3 -c "import pysrt; print('✅ pysrt available')"
    ```
 
+4. 检测 faster-whisper 环境（字幕 fallback 用）
+   - 检查 `skills/Youtube-clipper-skill/venv/Scripts/python.exe` 是否存在
+   - 如不存在：自动创建 venv 并安装 `pip install faster-whisper`
+
 **如果环境检测失败**:
 - yt-dlp 未安装: 提示 `brew install yt-dlp` 或 `pip install yt-dlp`
 - FFmpeg 无 libass: 提示安装 ffmpeg-full
@@ -57,6 +61,12 @@ allowed-tools:
   brew install ffmpeg-full  # macOS
   ```
 - Python 依赖缺失: 提示 `pip install pysrt python-dotenv`
+
+**字幕 Fallback 机制**:
+- 如果 YouTube 影片没有字幕，download_video.py 会自动调用 faster-whisper 生成字幕
+- 使用 skill 内置 venv 中的 faster-whisper（CPU int8，small 模型）
+- 约 1-2 分钟处理 10 分钟影片（CPU 模式）
+- 生成的字幕格式为 VTT，与现有流程兼容
 
 **注意**:
 - 标准 Homebrew FFmpeg 不包含 libass，无法烧录字幕
@@ -79,7 +89,8 @@ allowed-tools:
 
 3. 脚本会：
    - 下载视频（最高 1080p，mp4 格式）
-   - 下载英文字幕（VTT 格式，自动字幕作为备选）
+   - 尝试下载英文字幕（VTT 格式，自动字幕作为备选）
+   - **如果字幕下载失败，自动使用 faster-whisper 生成字幕**（新增 fallback）
    - 输出文件路径和视频信息
 
 4. 向用户展示：
@@ -330,8 +341,9 @@ python3 scripts/burn_subtitles.py <video_path> <subtitle_path> <output_path>
 
 ### 下载问题
 - 无效 URL → 提示检查 URL 格式
-- 字幕缺失 → 尝试自动字幕
+- 字幕缺失 → **自动使用 faster-whisper 生成字幕**（fallback）
 - 网络错误 → 提示重试
+- Whisper 生成失败 → 停止并提示用户手动指定时间范围
 
 ### 处理问题
 - FFmpeg 执行失败 → 显示详细错误信息
